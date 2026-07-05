@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  # === Layer 3: Raw Facts (Redis) ===
+  redis:
+    image: redis:7-alpine
+    container_name: qwentree-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # === Layer 2: Observations (PostgreSQL) ===
+  postgres:
+    image: postgres:16-alpine
+    container_name: qwentree-postgres
+    environment:
+      POSTGRES_DB: qwentree
+      POSTGRES_USER: qwentree
+      POSTGRES_PASSWORD: qwentree_secret
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qwentree"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # === Layer 1: Mental Models (ChromaDB) ===
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: qwentree-chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: "FALSE"
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  postgres-data:
+  chroma-data:

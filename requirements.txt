@@ -1,0 +1,38 @@
+# ============================================
+# 🌳 QwenTree — Dependencies
+# ============================================
+
+# === Core ===
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+
+# === QwenCloud (OpenAI-compatible) ===
+openai>=1.58.0
+
+# === TUI ===
+textual>=1.0.0
+rich>=13.9.0
+
+# === Memory (reused from Confucius) ===
+chromadb>=0.6.0
+psycopg2-binary>=2.9.10
+sqlalchemy>=2.0.36
+redis>=5.2.0
+
+# === Web & Network ===
+httpx>=0.28.0
+playwright>=1.50.0
+beautifulsoup4>=4.12.0
+
+# === Media Processing ===
+Pillow>=11.0.0
+
+# === Document Processing ===
+PyPDF2>=3.0.0
+python-docx>=1.1.2
+
+# === Utils ===
+python-dotenv>=1.0.1
+numpy>=2.1.0
