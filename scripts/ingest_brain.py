@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Optional
 
 # === CONFIGURACIÓN ===
-SESSIONS_DIR = os.path.expanduser("~/shiva")
+SESSIONS_DIR = os.path.expanduser("~/qwentree/sessions")
 MEMORY_DIR = os.path.expanduser("~/shiva/qwentree/data/memory")
 
 # Patrones para extraer información estructurada
@@ -200,7 +200,7 @@ def store_in_chromadb(items: list[dict], tier: str):
             obs = Observations()
             for item in items:
                 try:
-                    obs.add_observation(
+                    obs.add(
                         content=item["content"],
                         category=item.get("category", "general"),
                         confidence=item.get("confidence", 1.0),
@@ -212,7 +212,7 @@ def store_in_chromadb(items: list[dict], tier: str):
             rf = RawFacts()
             for item in items:
                 try:
-                    rf.add_raw_fact(
+                    rf.add(
                         content=item["content"],
                         channel=item.get("channel", "session"),
                     )
@@ -291,7 +291,7 @@ def ingest(force_reindex: bool = False):
 
     # Find all session files
     session_files = sorted(glob.glob(os.path.join(SESSIONS_DIR, "SESSION_NOTE_*.md")))
-    session_files += sorted(glob.glob(os.path.join(SESSIONS_DIR, "session_*.md")))
+    session_files += sorted(glob.glob(os.path.join(SESSIONS_DIR, "session_*.txt")))
 
     # Also look for session notes in subdirectories
     session_files += sorted(glob.glob(os.path.join(SESSIONS_DIR, "**/SESSION_NOTE_*.md"), recursive=True))

@@ -141,7 +141,7 @@ class QwenTreeApp(App):
 
     def __init__(self):
         super().__init__()
-        self._ready = False
+        self._app_ready = False
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -166,7 +166,7 @@ class QwenTreeApp(App):
         self._load_skills()
         self._populate_tree()
         self._show_welcome()
-        self._ready = True
+        self._app_ready = True
 
     def _load_skills(self):
         """Auto-discover and register all skills."""

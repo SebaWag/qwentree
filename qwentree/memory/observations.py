@@ -91,7 +91,7 @@ class Observations:
             results = []
             for row in cur.fetchall():
                 # Recency weight: 1.0 for today, decays to 0.0 after recency_days
-                recency_weight = max(0.0, 1.0 - (row["days_ago"] / recency_days))
+                recency_weight = max(0.0, 1.0 - (float(row["days_ago"]) / recency_days))
                 priority_score = row["confidence"] * recency_weight
                 results.append({
                     "content": row["content"],

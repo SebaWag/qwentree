@@ -59,7 +59,7 @@ def search(query: str, tier: str = "all") -> dict:
 def _search_mental_models(query: str) -> list:
     from qwentree.memory.mental_models import MentalModels
     mm = MentalModels()
-    results = mm.search(query)
+    results = mm.retrieve(query)
     return [{"content": r.get("content", ""), "score": r.get("score", 0),
              "source": r.get("source", "")} for r in results]
 

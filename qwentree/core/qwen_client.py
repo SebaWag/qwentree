@@ -240,62 +240,110 @@ class QwenClient:
     # MEDIA GENERATION — Images & Video (Wan models)
     # ============================================================
 
-    def generate_image(self, prompt: str, output_path: str,
-                       size: str = "1024x1024",
-                       model: Optional[str] = None) -> str:
-        """Generate image from text using Wan (QwenCloud).
+    def generate_image(self, prompt, output_path, size="1024x1024", model=None, timeout_seconds=120):
+        import httpx, time
+        api_key = settings.active_api_key
+        model_name = model or "wanx-v1"
+        headers = {
+            "Authorization": "Bearer " + api_key,
+            "X-DashScope-Async": "enable",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": model_name,
+            "input": {"prompt": prompt},
+            "parameters": {"size": size.replace("x", "*"), "n": 1},
+        }
+        url = "https://dashscope-intl.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis"
+        resp = httpx.post(url, headers=headers, json=payload, timeout=30)
+        data = resp.json()
+        if "output" not in data or "task_id" not in data["output"]:
+            raise RuntimeError("Wan failed: " + data.get("message", "unknown"))
+        task_id = data["output"]["task_id"]
+        poll_h = {"Authorization": "Bearer " + api_key}
+        start = time.time()
+        while time.time() - start < timeout_seconds:
+            time.sleep(3)
+            surl = "https://dashscope-intl.aliyuncs.com/api/v1/tasks/" + task_id
+            s = httpx.get(surl, headers=poll_h, timeout=15)
+            sd = s.json()
+            st = sd.get("output", {}).get("task_status", "UNKNOWN")
+            if st == "SUCCEEDED":
+                results = sd.get("output", {}).get("results", [])
+                if results and "url" in results[0]:
+                    img = httpx.get(results[0]["url"], timeout=60)
+                    with open(output_path, "wb") as f:
+                        f.write(img.content)
+                    return output_path
+                raise RuntimeError("No image URL")
+            elif st in ("FAILED", "CANCELED"):
+                raise RuntimeError("Image gen " + st)
+        raise TimeoutError("Timed out after " + str(timeout_seconds) + "s")
 
-        Args:
-            prompt: Text description of the image
-            output_path: Where to save the generated image
-            size: Image size (e.g., "1024x1024", "1920x1080")
-        Returns:
-            Path to generated image
-        """
-        resp = self.client.images.generate(
-            model=model or settings.qwen_image_model,
-            prompt=prompt,
-            size=size,
-            n=1,
-        )
-
-        image_url = resp.data[0].url
-        import httpx
-        img_resp = httpx.get(image_url)
-        with open(output_path, "wb") as f:
-            f.write(img_resp.content)
-
-        return output_path
+    def generate_video(self, prompt, output_path, resolution="720P", ratio="16:9", duration=5, model=None, timeout_seconds=300):
+        import httpx, time
+        api_key = settings.active_api_key
+        model_name = model or "happyhorse-1.1-t2v"
+        headers = {
+            "Authorization": "Bearer " + api_key,
+            "X-DashScope-Async": "enable",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": model_name,
+            "input": {"prompt": prompt},
+            "parameters": {"resolution": resolution, "ratio": ratio, "duration": duration},
+        }
+        url = "https://dashscope-intl.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis"
+        resp = httpx.post(url, headers=headers, json=payload, timeout=30)
+        data = resp.json()
+        if "output" not in data or "task_id" not in data["output"]:
+            raise RuntimeError("HappyHorse failed: " + data.get("message", "unknown"))
+        task_id = data["output"]["task_id"]
+        poll_h = {"Authorization": "Bearer " + api_key}
+        start = time.time()
+        while time.time() - start < timeout_seconds:
+            time.sleep(5)
+            surl = "https://dashscope-intl.aliyuncs.com/api/v1/tasks/" + task_id
+            s = httpx.get(surl, headers=poll_h, timeout=15)
+            sd = s.json()
+            st = sd.get("output", {}).get("task_status", "UNKNOWN")
+            if st == "SUCCEEDED":
+                results = sd.get("output", {}).get("results", [])
+                if results and "url" in results[0]:
+                    vid = httpx.get(results[0]["url"], timeout=120)
+                    with open(output_path, "wb") as f:
+                        f.write(vid.content)
+                    return output_path
+                raise RuntimeError("No video URL")
+            elif st in ("FAILED", "CANCELED"):
+                raise RuntimeError("Video gen " + st)
+        raise TimeoutError("Timed out after " + str(timeout_seconds) + "s")
 
     # ============================================================
     # EMBEDDINGS
     # ============================================================
 
-    def embed(self, text: str) -> list[float]:
-        """Generate text embeddings."""
+    # ============================================================
+    # EMBEDDINGS
+    # ============================================================
+
+    def embed(self, texts: list[str],
+              model: Optional[str] = None) -> list[list[float]]:
+        """Generate embeddings for a list of texts.
+
+        Args:
+            texts: List of text strings to embed
+            model: Embedding model name (default: text-embedding-v3)
+        Returns:
+            List of embedding vectors
+        """
+        model = model or settings.qwen_embedding_model
         resp = self.client.embeddings.create(
-            model=settings.qwen_embedding_model,
-            input=text,
+            model=model,
+            input=texts,
         )
-        return resp.data[0].embedding
-
-    # ============================================================
-    # MODE SWITCHING
-    # ============================================================
-
-    def switch_to_qwen(self) -> bool:
-        """Switch to Qwen Cloud API."""
-        if settings.qwen_api_key:
-            settings.api_mode = "qwen"
-            self._client = None
-            return True
-        return False
-
-    def switch_to_fallback(self) -> bool:
-        """Switch to fallback API (development)."""
-        settings.api_mode = "fallback"
-        self._client = None
-        return True
+        return [item.embedding for item in resp.data]
 
 
 # Singleton instance

@@ -17,8 +17,8 @@ class MentalModels:
 
     def __init__(self):
         # Connect to external ChromaDB service via HTTP
-        chroma_host = os.getenv("CHROMA_HOST", "localhost")
-        chroma_port = os.getenv("CHROMA_PORT", "8000")
+        chroma_host = settings.chroma_host
+        chroma_port = str(settings.chroma_port)
         self.client = chromadb.HttpClient(
             host=chroma_host,
             port=int(chroma_port),
